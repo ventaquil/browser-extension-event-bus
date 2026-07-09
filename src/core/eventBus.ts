@@ -45,9 +45,10 @@ export default class EventBus implements IEventBus {
     }
 
     private async handle(map: Map<any, any>): Promise<void> {
+        const eventKeyPrefix: string = this.config.prefix + this.config.delimiter;
         for (let [key, value] of map.entries()) {
-            const topic: string = this.retrieveTopic(key);
-            if (key.includes(topic) && this.isNewEvent(value)) {
+            if (key.startsWith(eventKeyPrefix) && this.isNewEvent(value)) {
+                const topic: string = this.retrieveTopic(key);
                 console.info('[EventBus] Handling event with id: ' + key);
 
                 const listeners: Function[] | undefined = this.listeners.get(topic);
@@ -78,7 +79,11 @@ export default class EventBus implements IEventBus {
     }
 
     private isEmptyEvent(data: any): boolean {
-        return !data || Object.keys(data).length === 0;
+        if (data === undefined || data === null) {
+            return true;
+        }
+
+        return typeof data === 'object' && Object.keys(data).length === 0;
     }
 
     private generateKey(topic: string): string {
@@ -86,6 +91,8 @@ export default class EventBus implements IEventBus {
     }
 
     private retrieveTopic(key: string): string {
-        return key.split(this.config.delimiter)[1];
+        const start: number = this.config.prefix.length + this.config.delimiter.length;
+        const end: number = key.lastIndexOf(this.config.delimiter);
+        return key.substring(start, end);
     }
 }

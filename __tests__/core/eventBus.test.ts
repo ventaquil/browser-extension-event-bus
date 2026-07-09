@@ -109,5 +109,57 @@ describe('eventBus.test.ts', () => {
         // then
         expect(result).toBeTruthy();
     });
+
+    it('should deliver primitive payloads like numbers',  async () => {
+        // given
+        const buffer = new DummyStorage()
+        const underTest = new EventBus(Config.of('test', '#', false), buffer);
+
+        let received: unknown = 'NOT CALLED';
+        await underTest.subscribe('numbers', (data: unknown) => {
+            received = data;
+        })
+
+        // when
+        await underTest.send('numbers', 10)
+
+        // then
+        expect(received).toBe(10);
+    });
+
+    it('should ignore storage changes that are not bus events',  async () => {
+        // given
+        const buffer = new DummyStorage()
+        const underTest = new EventBus(Config.of('test', '#', false), buffer);
+
+        let received: unknown = undefined;
+        await underTest.subscribe('settings', (data: unknown) => {
+            received = data;
+        })
+
+        // when: a foreign key changes in the same storage area
+        await buffer.save('user_settings_theme', { isEmpty: false, data: { theme: 'dark' } })
+
+        // then
+        expect(received).toBeUndefined();
+    });
+
+    it('should handle topic names containing the delimiter',  async () => {
+        // given
+        const topicName: string = 'my#topic';
+        const buffer = new DummyStorage()
+        const underTest = new EventBus(Config.of('test', '#', false), buffer);
+
+        let received: unknown = undefined;
+        await underTest.subscribe(topicName, (data: unknown) => {
+            received = data;
+        })
+
+        // when
+        await underTest.send(topicName, 'payload')
+
+        // then
+        expect(received).toBe('payload');
+    });
 });
 

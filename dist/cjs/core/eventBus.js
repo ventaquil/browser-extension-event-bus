@@ -33,9 +33,10 @@ class EventBus {
         return this.listeners.has(topic);
     }
     async handle(map) {
+        const eventKeyPrefix = this.config.prefix + this.config.delimiter;
         for (let [key, value] of map.entries()) {
-            const topic = this.retrieveTopic(key);
-            if (key.includes(topic) && this.isNewEvent(value)) {
+            if (key.startsWith(eventKeyPrefix) && this.isNewEvent(value)) {
+                const topic = this.retrieveTopic(key);
                 console.info('[EventBus] Handling event with id: ' + key);
                 const listeners = this.listeners.get(topic);
                 if (listeners && listeners.length > 0) {
@@ -62,13 +63,18 @@ class EventBus {
         return new Date().getTime();
     }
     isEmptyEvent(data) {
-        return !data || Object.keys(data).length === 0;
+        if (data === undefined || data === null) {
+            return true;
+        }
+        return typeof data === 'object' && Object.keys(data).length === 0;
     }
     generateKey(topic) {
         return this.config.prefix + this.config.delimiter + topic + this.config.delimiter + this.getTime();
     }
     retrieveTopic(key) {
-        return key.split(this.config.delimiter)[1];
+        const start = this.config.prefix.length + this.config.delimiter.length;
+        const end = key.lastIndexOf(this.config.delimiter);
+        return key.substring(start, end);
     }
 }
 exports.default = EventBus;
